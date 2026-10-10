@@ -1,0 +1,80 @@
+@import 'tailwindcss';
+
+/*
+ * Popcorn Journal design tokens. The app is dark-only on purpose (a screening-room feel);
+ * chart colours were validated against --color-surface for CVD and contrast.
+ */
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces Variable', ui-serif, Georgia, serif;
+
+  --color-bg: #0e0e11;
+  --color-surface: #17171c;
+  --color-surface-2: #1f1f26;
+  --color-surface-3: #2a2a33;
+  --color-line: #2c2c35;
+  --color-line-strong: #3b3b46;
+
+  --color-ink: #f3f1ec;
+  --color-ink-2: #c3bfb5;
+  --color-ink-3: #8f8b82;
+
+  --color-accent: #e3a43c;
+  --color-accent-strong: #f0b955;
+  --color-accent-ink: #1c1405;
+  --color-accent-wash: rgb(227 164 60 / 0.12);
+
+  --color-danger: #e66767;
+  --color-danger-wash: rgb(230 103 103 / 0.12);
+  --color-good: #3fbf6f;
+
+  /* chart series (dark-mode steps of the validated palette) */
+  --color-series-1: #c98500;
+  --color-series-2: #3987e5;
+  --color-series-3: #199e70;
+  --color-grid: #2a2a33;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+    background: var(--color-bg);
+  }
+  body {
+    @apply bg-bg font-sans text-ink antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  ::selection {
+    background: rgb(227 164 60 / 0.35);
+  }
+  dialog::backdrop {
+    background: rgb(5 5 8 / 0.72);
+    backdrop-filter: blur(2px);
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface;
+  }
+  .eyebrow {
+    @apply text-[11px] font-semibold tracking-[0.14em] text-ink-3 uppercase;
+  }
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
