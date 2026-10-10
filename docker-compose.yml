@@ -1,0 +1,49 @@
+# Local PostgreSQL for Popcorn Journal. Ports are bound to 127.0.0.1 only.
+#   docker compose up -d db                      database only (run backend/frontend natively)
+#   docker compose --profile app up -d --build   database + backend + frontend in containers
+# Credentials come from .env (copy .env.example). Data lives in the popcorn-db volume.
+services:
+  db:
+    image: postgres:17.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-popcorn}
+      POSTGRES_USER: ${DB_USER:-popcorn}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    ports:
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
+    volumes:
+      - popcorn-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  backend:
+    profiles: ["app"]
+    build: ./backend
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-popcorn}
+      DB_USER: ${DB_USER:-popcorn}
+      DB_PASSWORD: ${DB_PASSWORD}
+      SERVER_ADDRESS: 0.0.0.0
+      CORS_ALLOWED_ORIGINS: http://localhost:8088
+    ports:
+      - "127.0.0.1:8080:8080"
+
+  frontend:
+    profiles: ["app"]
+    build: ./frontend
+    depends_on:
+      - backend
+    ports:
+      - "127.0.0.1:8088:80"
+
+volumes:
+  popcorn-db:

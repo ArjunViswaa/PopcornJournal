@@ -1,0 +1,27 @@
+# secrets
+.env
+.env.*
+!.env.example
+
+# personal data: the spreadsheet and anything exported from the database
+data/import/*
+!data/import/README.md
+!data/import/.gitkeep
+backups/
+*.dump
+*.xlsx
+*.xls
+
+# build output
+backend/target/
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/test-results/
+frontend/playwright-report/
+*.log
+.idea/
+.vscode/
+
+# backend log from scripts/start.*
+logs/
