@@ -57,6 +57,13 @@ springdoc:
 popcorn:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5180,http://127.0.0.1:5180}
+  posters:
+    # Optional: looks up posters on Wikipedia and stores them locally. Sends titles,
+    # years and languages to the Wikipedia API, so it is off unless enabled.
+    enabled: ${POSTERS_ENABLED:false}
+    wikipedia-api: https://en.wikipedia.org/w/api.php
+    user-agent: "PopcornJournal/1.0 (https://github.com/ArjunViswaa/PopcornJournal; personal local app)"
+    thumbnail-width: 500
   import:
     # recorded with viewing method OTHER rather than STREAMING
     non-streaming-platforms: YTS,5movierulz

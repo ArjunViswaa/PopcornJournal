@@ -55,7 +55,7 @@ public class MovieSearchRepository {
         params.addValue("offset", (long) page * size);
         String sql = """
                 SELECT m.id, m.title, m.format, m.release_year, m.language, m.rating, m.rating_beyond_scale,
-                       m.favourite, m.poster_url,
+                       m.favourite, %s AS poster_url,
                        (m.review IS NOT NULL AND btrim(m.review) <> '') AS has_review,
                        COALESCE(vs.viewing_count, 0) AS viewing_count,
                        vs.last_watched_on, vs.first_watched_on, vs.platforms, vs.venues
@@ -74,7 +74,7 @@ public class MovieSearchRepository {
                 WHERE %s
                 ORDER BY %s
                 LIMIT :limit OFFSET :offset
-                """.formatted(where, orderBy(criteria.sortOrDefault()));
+                """.formatted(MoviePosterRepository.EFFECTIVE_URL_SQL, where, orderBy(criteria.sortOrDefault()));
 
         List<Row> rows = jdbc.query(sql, params, (rs, i) -> mapRow(rs));
         Map<Long, List<String>> genres = genresFor(rows.stream().map(Row::id).toList());

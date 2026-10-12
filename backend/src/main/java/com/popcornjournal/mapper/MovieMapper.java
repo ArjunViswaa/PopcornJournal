@@ -12,11 +12,13 @@ import com.popcornjournal.entity.ImportSourceRow;
 import com.popcornjournal.entity.Movie;
 import com.popcornjournal.entity.ViewingSession;
 import com.popcornjournal.entity.WatchlistItem;
+import com.popcornjournal.repository.MoviePosterRepository;
 import com.popcornjournal.support.Titles;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Component
 public class MovieMapper {
@@ -40,7 +42,8 @@ public class MovieMapper {
         movie.setMetadataSource(Titles.clean(request.metadataSource()));
     }
 
-    public MovieDetailDto toDetail(Movie movie, List<ViewingSession> viewings, List<ImportSourceRow> sourceRows) {
+    public MovieDetailDto toDetail(Movie movie, List<ViewingSession> viewings, List<ImportSourceRow> sourceRows,
+                                   Optional<MoviePosterRepository.PosterInfo> fetchedPoster) {
         List<GenreDto> genres = movie.getGenres().stream()
                 .sorted(Comparator.comparing(Genre::getName, String.CASE_INSENSITIVE_ORDER))
                 .map(g -> new GenreDto(g.getId(), g.getName(), g.getCategory()))
@@ -50,7 +53,10 @@ public class MovieMapper {
                 movie.getReleaseYear(), movie.getLanguage(), movie.getSynopsis(),
                 movie.getRating(), movie.isRatingBeyondScale(), movie.getReview(), movie.getPrivateNotes(),
                 movie.isFavourite(), movie.getDirector(), movie.getCastMembers(), movie.getRuntimeMinutes(),
-                movie.getPosterUrl(), movie.getMetadataSource(), genres,
+                movie.getPosterUrl(),
+                fetchedPoster.map(p -> new MovieDetailDto.FetchedPoster(p.url(), p.sourceName(), p.sourcePageUrl(),
+                        p.matchedTitle(), p.fetchedAt())).orElse(null),
+                movie.getMetadataSource(), genres,
                 viewings.stream().map(this::toDto).toList(),
                 sourceRows.stream()
                         .map(r -> new MovieDetailDto.SourceRow(r.getSheetName(), r.getRowNumber(), r.getRawValues()))

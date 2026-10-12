@@ -13,6 +13,7 @@ import com.popcornjournal.exception.ConflictException;
 import com.popcornjournal.exception.NotFoundException;
 import com.popcornjournal.mapper.MovieMapper;
 import com.popcornjournal.repository.ImportSourceRowRepository;
+import com.popcornjournal.repository.MoviePosterRepository;
 import com.popcornjournal.repository.MovieRepository;
 import com.popcornjournal.repository.MovieSearchRepository;
 import com.popcornjournal.repository.ViewingSessionRepository;
@@ -34,10 +35,11 @@ public class MovieService {
     private final ReferenceDataService referenceData;
     private final ViewingSessionService viewingSessions;
     private final MovieMapper mapper;
+    private final MoviePosterRepository posters;
 
     public MovieService(MovieRepository movies, MovieSearchRepository search, ViewingSessionRepository sessions,
                         ImportSourceRowRepository sourceRows, ReferenceDataService referenceData,
-                        ViewingSessionService viewingSessions, MovieMapper mapper) {
+                        ViewingSessionService viewingSessions, MovieMapper mapper, MoviePosterRepository posters) {
         this.movies = movies;
         this.search = search;
         this.sessions = sessions;
@@ -45,6 +47,7 @@ public class MovieService {
         this.referenceData = referenceData;
         this.viewingSessions = viewingSessions;
         this.mapper = mapper;
+        this.posters = posters;
     }
 
     @Transactional(readOnly = true)
@@ -56,7 +59,7 @@ public class MovieService {
     public MovieDetailDto get(Long id) {
         Movie movie = movies.findWithGenresById(id).orElseThrow(() -> new NotFoundException("Movie", id));
         return mapper.toDetail(movie, sessions.findForMovie(id),
-                sourceRows.findByMovieIdOrderBySheetNameAscRowNumberAsc(id));
+                sourceRows.findByMovieIdOrderBySheetNameAscRowNumberAsc(id), posters.findInfo(id));
     }
 
     public MovieDetailDto create(CreateMovieRequest request) {
