@@ -29,6 +29,7 @@
 | `dto` | Request/response records with Bean Validation |
 | `mapper` | Entity → DTO mapping |
 | `importer` | Spreadsheet reader, row interpreter, planner (dry run) and transactional writer, CLI runner |
+| `poster` | Optional poster lookup: Wikipedia client and the matcher that decides whether a result is really this movie |
 | `exception` | Exceptions and the global RFC 9457 problem-document handler |
 | `config` | Clock, CORS, OpenAPI |
 | `support` | Title normalisation shared by search, duplicate detection and import |
@@ -62,6 +63,7 @@ watchlist_items ──► genres
 | `venues` | Cinemas/theatres, optional city. |
 | `watchlist_items` | Recommendations. Separate from movies so they never count as watched. |
 | `import_runs` | One row per committed import: file name, SHA-256, who triggered it, summary JSON. |
+| `movie_posters` | Posters found by the optional lookup: image bytes, type, and the source page/image URL and matched article. One per movie, deleted with the movie. Read only by the image endpoint, never by list queries. `movies.poster_lookup_status/at` record each lookup (FOUND, NOT_FOUND, FAILED, REJECTED) so runs don't repeat work and removed posters stay removed. The effective poster is the user's `poster_url` first, then the stored one. |
 | `import_source_rows` | The original cells of every imported row (JSONB), linked to the movie or watchlist item (`ON DELETE SET NULL`, so a movie deleted in the app stays recognisable and isn't re-imported). Keyed by natural key, not row number, because inserting rows in Excel shifts the numbers. |
 
 **Dates and times.** Viewing dates are `DATE` with no time zone: the calendar day as
@@ -95,7 +97,7 @@ JSON at `/api/v1/openapi`.
 
 | Method | Path | Purpose |
 |---|---|---|
-| GET | `/movies` | Search/filter/sort/page. Params: `q, language, genreId, category, platformId, venueId, method, format, watchedYear, watchedFrom, watchedTo, minRating, maxRating, ratingTier (RATED/UNRATED/BEYOND_SCALE), favourite, list (FAVOURITES/TOP_RATED/RECENTLY_WATCHED/UNRATED/NO_REVIEW/MISSING_METADATA), sort (TITLE/LATEST_WATCHED/EARLIEST_WATCHED/HIGHEST_RATED/LOWEST_RATED/RECENTLY_ADDED/RELEASE_YEAR), page, size≤100` |
+| GET | `/movies` | Search/filter/sort/page. Params: `q, language, genreId, category, platformId, venueId, method, format, watchedYear, watchedFrom, watchedTo, minRating, maxRating, ratingTier (RATED/UNRATED/BEYOND_SCALE), favourite, list (FAVOURITES/TOP_RATED/RECENTLY_WATCHED/UNRATED/NO_REVIEW/MISSING_METADATA), sort (TITLE/LATEST_WATCHED/EARLIEST_WATCHED/HIGHEST_RATED/LOWEST_RATED/RECENTLY_ADDED/RELEASE_YEAR), page, size≤100`. Default sort is LATEST_WATCHED (HIGHEST_RATED for the top-rated list): dated titles newest first, then undated ones added in the app, then undated imported ones in spreadsheet row order |
 | GET | `/movies/{id}` | Detail with genres, viewings and original spreadsheet rows |
 | POST | `/movies` | `{movie, initialViewing?}`; 201 + Location; 409 with `conflictsWith` for an exact duplicate |
 | PUT | `/movies/{id}` | Replace editable fields |
@@ -112,6 +114,10 @@ JSON at `/api/v1/openapi`.
 | POST | `/imports/preview` | Multipart `file`: dry-run report |
 | POST | `/imports` | Multipart `file`: commit, returns the report |
 | GET | `/imports` | Recent committed runs |
+| GET | `/posters/status` | Whether lookup is enabled; counts of posters, pending, not found |
+| POST | `/posters/lookup` | Look up the next batch (`batchSize`, `retryNotFound`, `runStartedAt` to continue a run) |
+| POST | `/movies/{id}/poster/lookup` | Look up one movie (refused if it has a user poster URL) |
+| GET/POST/DELETE | `/movies/{id}/poster` | Stored poster image / upload your own (multipart `file`; type checked from the bytes) / remove it (bulk runs won't refetch) |
 | GET | `/health` (and `/actuator/health`) | API + database status and schema version |
 
 **Errors** are RFC 9457 problem documents: `{type, title, status, detail, instance}` plus
@@ -143,6 +149,10 @@ Details and decisions are in [excel-data-audit.md](excel-data-audit.md).
   names reduced to a safe base name and never used as paths.
 - Review text is not logged; import messages never quote reviews or synopses.
 - The spreadsheet, import reports, backups and `.env` are git-ignored.
+- Poster lookup (off by default) sends only title, year, format and language to the
+  Wikipedia API with an identifying User-Agent, and downloads images only from
+  `*.wikimedia.org` over HTTPS (max 3 MB, image types only). Images are served from the
+  local database, so the browser never contacts Wikipedia.
 - **This is not hardened for the internet.** There is no authentication, rate limiting or
   TLS. Don't expose it beyond localhost without adding those.
 

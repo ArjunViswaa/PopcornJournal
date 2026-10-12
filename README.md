@@ -6,11 +6,12 @@ PostgreSQL. It starts from your existing Excel spreadsheet.
 
 - **Dashboard**: unique titles vs viewing sessions, this year/month, average rating (∞ kept
   separate), recently watched, highest rated, platforms, languages, genres, timeline.
-- **Library**: search, filters (language, genre, platform, format, watch year, rating),
-  sorting, grid/list, personal lists (favourites, top rated, unrated, no review, missing details).
+- **Library**: most recently watched first by default; search, filters (language, genre,
+  platform, format, watch year, rating), other sort orders, grid/list, personal lists (favourites, top rated, unrated, no review, missing details).
 - **Movie pages**: rating, review, private notes, favourite, metadata, full viewing history
   with add/edit/delete, and the original spreadsheet row it came from.
 - **Diary**, **Statistics**, **Watchlist**, and a **web importer** with a dry-run preview.
+- **Posters** (optional): looked up on Wikipedia and stored locally in PostgreSQL.
 
 Architecture, schema and API: [docs/architecture.md](docs/architecture.md).
 Spreadsheet audit and import decisions: [docs/excel-data-audit.md](docs/excel-data-audit.md).
@@ -35,6 +36,8 @@ frontend/           React + Vite app          e2e/ = Playwright journey
 data/import/        put Popcorn_Sheet.xlsx here (git-ignored)
 docs/               architecture and spreadsheet audit
 scripts/            PowerShell (*.ps1) and shell (*.sh) helpers
+assets/             app icons used by the desktop shortcuts
+start.cmd           one-command launcher for Windows (logs in the window)
 docker-compose.yml  PostgreSQL (and optional containerised app)
 .env.example        configuration template (copy to .env)
 ```
@@ -61,6 +64,7 @@ cp .env.example .env && ${EDITOR:-nano} .env
 | `SERVER_PORT` | 8080 | backend port (binds to 127.0.0.1) |
 | `CORS_ALLOWED_ORIGINS` | `http://localhost:5180,http://127.0.0.1:5180` | allowed browser origins |
 | `PG_SUPERUSER_PASSWORD` | — | native installs only; used by `db-setup.ps1` / `reset-dev-db.ps1` |
+| `POSTERS_ENABLED` | false | turns on the optional Wikipedia poster lookup (see below) |
 
 The backend reads `.env` directly; real environment variables take precedence.
 
@@ -90,6 +94,21 @@ Flyway runs automatically when the backend starts and creates or upgrades the sc
 (`backend/src/main/resources/db/migration`). Nothing to run by hand.
 
 ## 4. Start the app
+
+**Desktop shortcut (Windows).** Run this once to put a **Popcorn Journal** icon on your
+Desktop (plus Start menu entries, including **Stop Popcorn Journal**):
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\install-shortcuts.ps1
+```
+
+Double-clicking the icon starts the backend and frontend in the background, waits until
+both are ready (about 15 seconds), opens the app in your browser and closes its window.
+If the app is already running it just opens the browser. Stop it with **Stop Popcorn
+Journal** from the Start menu (`scripts\stop.ps1`). Logs go to `logs\`. Remove the shortcuts
+with `install-shortcuts.ps1 -Remove`; run it again after moving the project folder.
+
+**From a terminal.**
 
 One command starts the backend, waits until it reports that the database is up, then
 starts the frontend and opens **http://127.0.0.1:5180** in your browser. Ctrl+C stops both.
@@ -139,6 +158,28 @@ and never changed, edits made in the app are kept, and movies you deleted are no
 back. The import runs in a single transaction, so if it fails nothing is written. Fix the
 reported problem and run it again.
 
+## Posters (optional)
+
+With `POSTERS_ENABLED=true` in `.env` (and the backend restarted), the Library page shows
+**Find posters**. It looks up each title on the English Wikipedia API, which is free and
+needs no account or key. Matching images are downloaded once and stored in PostgreSQL, so
+posters work offline and your browser never contacts Wikipedia.
+
+- **What is sent:** only the title, release year, format and language of titles without a
+  poster. Nothing else is sent, and requests go out only when you start a lookup.
+- **Matching is strict.** A poster is used only when the title, year and film/series type
+  agree; small transliteration differences ("Kanguvaa" vs "Kanguva") need the year to match,
+  and part or side letters/numbers must match exactly. Otherwise the placeholder stays.
+- **You stay in control.** A poster URL you enter on the Edit page always wins and is never
+  replaced. "Wrong poster? Remove it" on a movie page deletes a found poster, and bulk
+  runs won't fetch it again. Ratings, reviews and notes are never touched.
+- Popular US sitcoms (Friends, The Office…) usually have no lead image on Wikipedia, so
+  they keep the placeholder.
+
+**Uploading your own.** On any movie page, **Upload poster** (or **Replace image**) stores
+a JPEG, PNG, WebP or GIF of up to 5 MB in the database. This works even with the lookup
+turned off, and nothing is sent anywhere. The lookup never replaces an uploaded poster.
+
 ## 6. Tests
 
 ```powershell
@@ -148,7 +189,7 @@ powershell -ExecutionPolicy Bypass -File .\scripts\test-all.ps1     # everything
 or individually:
 
 ```bash
-cd backend  && mvn verify          # 52 tests: unit + integration on an embedded PostgreSQL 17
+cd backend  && mvn verify          # 71 tests: unit + integration on an embedded PostgreSQL 17
 cd frontend && npm run typecheck && npm test && npm run build
 cd frontend && npx playwright test # journey against popcorn_e2e on ports 8081/5181
 ```
@@ -201,8 +242,8 @@ without adding authentication and TLS.
 
 ## Known limitations
 
-- No poster or metadata enrichment yet. Posters show a generated placeholder unless you
-  paste an image URL. External services would be optional and disabled by default.
+- Posters come only from Wikipedia (optional, off by default). Titles without a confident
+  match keep the generated placeholder. No other metadata (cast, runtime) is fetched.
 - Custom tags and lists are not implemented; the personal lists are fixed filters.
 - Dark theme only.
 - Movies vs series: each season is its own title, as in the spreadsheet.
