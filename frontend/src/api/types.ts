@@ -82,13 +82,47 @@ export interface MovieDetail {
   director: string | null
   castMembers: string | null
   runtimeMinutes: number | null
+  /** The poster URL the user entered; it wins over fetchedPoster. */
   posterUrl: string | null
+  fetchedPoster: FetchedPoster | null
   metadataSource: string | null
   genres: Genre[]
   viewings: ViewingSession[]
   importedFrom: SourceRow[]
   createdAt: string
   updatedAt: string
+}
+
+export interface FetchedPoster {
+  url: string
+  source: string
+  sourcePageUrl: string | null
+  matchedTitle: string | null
+  fetchedAt: string
+}
+
+export interface PosterStatus {
+  enabled: boolean
+  source: string
+  totalMovies: number
+  withOwnPoster: number
+  withFetchedPoster: number
+  pending: number
+  notFound: number
+  rejected: number
+}
+
+export interface PosterLookupResult {
+  movieId: number
+  title: string
+  outcome: 'FOUND' | 'NOT_FOUND' | 'FAILED'
+  matchedTitle: string | null
+}
+
+export interface PosterBatch {
+  runStartedAt: string
+  results: PosterLookupResult[]
+  remaining: number
 }
 
 export interface MovieInput {

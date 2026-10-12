@@ -204,7 +204,7 @@ export function MovieForm({ initial, movieId, submitLabel, submitting, serverErr
           <Field label="Cast" optional className="sm:col-span-2">
             {(p) => <Input value={movie.castMembers ?? ''} onChange={(e) => set('castMembers', blank(e.target.value))} {...p} />}
           </Field>
-          <Field label="Poster URL" optional error={errors.posterUrl} hint="Left empty, a placeholder is drawn">
+          <Field label="Poster URL" optional error={errors.posterUrl} hint="Overrides any poster found automatically">
             {(p) => <Input type="url" value={movie.posterUrl ?? ''} onChange={(e) => set('posterUrl', blank(e.target.value))} {...p} />}
           </Field>
           <Field label="Metadata source" optional hint="Where these details came from">

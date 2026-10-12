@@ -1,5 +1,5 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { moviesApi, referenceApi, statsApi, viewingsApi, watchlistApi } from './endpoints'
+import { moviesApi, postersApi, referenceApi, statsApi, viewingsApi, watchlistApi } from './endpoints'
 import type { MovieInput, MovieQuery, ViewingInput, WatchlistInput } from './types'
 
 export const keys = {
@@ -15,6 +15,7 @@ export const keys = {
   venues: ['reference', 'venues'] as const,
   languages: ['reference', 'languages'] as const,
   watchlist: ['watchlist'] as const,
+  posterStatus: ['posters', 'status'] as const,
 }
 
 export function useMovieList(query: MovieQuery) {
@@ -38,6 +39,32 @@ export const useVenues = () => useQuery({ queryKey: keys.venues, queryFn: refere
 export const useLanguages = () =>
   useQuery({ queryKey: keys.languages, queryFn: referenceApi.languages, staleTime: 60_000 })
 export const useWatchlist = () => useQuery({ queryKey: keys.watchlist, queryFn: watchlistApi.list })
+export const usePosterStatus = () => useQuery({ queryKey: keys.posterStatus, queryFn: postersApi.status })
+
+/** Posters show up in lists and on detail pages, so refresh both along with the counts. */
+export function useInvalidatePosters() {
+  const client = useQueryClient()
+  return () =>
+    Promise.all([
+      client.invalidateQueries({ queryKey: keys.movies }),
+      client.invalidateQueries({ queryKey: ['posters'] }),
+    ])
+}
+
+export function usePosterLookupOne(movieId: number) {
+  const invalidate = useInvalidatePosters()
+  return useMutation({ mutationFn: () => postersApi.lookupOne(movieId), onSuccess: invalidate })
+}
+
+export function useUploadPoster(movieId: number) {
+  const invalidate = useInvalidatePosters()
+  return useMutation({ mutationFn: (file: File) => postersApi.upload(movieId, file), onSuccess: invalidate })
+}
+
+export function useRemovePoster(movieId: number) {
+  const invalidate = useInvalidatePosters()
+  return useMutation({ mutationFn: () => postersApi.remove(movieId), onSuccess: invalidate })
+}
 
 export function useDiary(params: { year?: number; undated?: boolean; page: number }) {
   return useQuery({

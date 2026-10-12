@@ -5,6 +5,9 @@ import type {
   GenreSummary,
   ImportReport,
   ImportRun,
+  PosterBatch,
+  PosterLookupResult,
+  PosterStatus,
   Insights,
   MovieDetail,
   MovieFormat,
@@ -41,6 +44,19 @@ export const viewingsApi = {
     api.post<ViewingSession>(`/api/v1/movies/${movieId}/viewings`, viewing),
   update: (id: number, viewing: ViewingInput) => api.put<ViewingSession>(`/api/v1/viewings/${id}`, viewing),
   remove: (id: number) => api.delete(`/api/v1/viewings/${id}`),
+}
+
+export const postersApi = {
+  status: () => api.get<PosterStatus>('/api/v1/posters/status'),
+  lookupBatch: (params: { runStartedAt?: string; retryNotFound?: boolean; batchSize?: number }) =>
+    api.post<PosterBatch>(`/api/v1/posters/lookup${buildQuery(params)}`),
+  lookupOne: (movieId: number) => api.post<PosterLookupResult>(`/api/v1/movies/${movieId}/poster/lookup`),
+  remove: (movieId: number) => api.delete(`/api/v1/movies/${movieId}/poster`),
+  upload: (movieId: number, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return api.post<void>(`/api/v1/movies/${movieId}/poster`, form)
+  },
 }
 
 export const statsApi = {

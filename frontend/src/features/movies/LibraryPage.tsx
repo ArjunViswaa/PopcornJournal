@@ -1,15 +1,16 @@
-import { Clapperboard, LayoutGrid, List, Plus, Search, SearchX, X } from 'lucide-react'
+import { Clapperboard, ImageDown, LayoutGrid, List, Plus, Search, SearchX, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router'
-import { useGenres, useLanguages, useMovieList, usePlatforms } from '../../api/queries'
+import { useGenres, useLanguages, useMovieList, usePlatforms, usePosterStatus } from '../../api/queries'
 import type { MovieFormat, MovieQuery, MovieSort, PersonalList, RatingTier } from '../../api/types'
 import { PageHeader } from '../../components/layout/AppShell'
-import { ButtonLink } from '../../components/ui/Button'
+import { Button, ButtonLink } from '../../components/ui/Button'
 import { Input, Select } from '../../components/ui/Field'
 import { Pagination } from '../../components/ui/Pagination'
 import { EmptyState, ErrorState, Skeleton } from '../../components/ui/States'
 import { useDebouncedValue, useStoredPreference } from '../../lib/hooks'
 import { MovieCard, MovieRow } from './MovieCard'
+import { PosterLookupDialog } from './PosterLookupDialog'
 
 const PAGE_SIZE = 24
 
@@ -70,6 +71,10 @@ export function LibraryPage() {
   const genres = useGenres()
   const platforms = usePlatforms()
   const languages = useLanguages()
+  const posterStatus = usePosterStatus()
+  const [posterDialog, setPosterDialog] = useState(false)
+  const posters = posterStatus.data
+  const canFindPosters = posters?.enabled === true && posters.pending + posters.notFound > 0
 
   const update = (changes: Record<string, string | number | undefined>) => {
     setParams(
@@ -103,11 +108,19 @@ export function LibraryPage() {
         title="Everything you've watched"
         description={data ? `${data.totalElements.toLocaleString('en-GB')} titles match` : undefined}
         actions={
-          <ButtonLink to="/movies/new" variant="primary" icon={<Plus className="size-4" />}>
-            Add movie
-          </ButtonLink>
+          <>
+            {canFindPosters && (
+              <Button icon={<ImageDown className="size-4" />} onClick={() => setPosterDialog(true)}>
+                Find posters
+              </Button>
+            )}
+            <ButtonLink to="/movies/new" variant="primary" icon={<Plus className="size-4" />}>
+              Add movie
+            </ButtonLink>
+          </>
         }
       />
+      {posters && <PosterLookupDialog open={posterDialog} onClose={() => setPosterDialog(false)} status={posters} />}
 
       <div className="mb-4 flex flex-wrap items-center gap-1" role="tablist" aria-label="Personal lists">
         {LISTS.map((list) => {

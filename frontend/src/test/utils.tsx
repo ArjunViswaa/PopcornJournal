@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 import { createMemoryRouter, RouterProvider, type RouteObject } from 'react-router'
 import { vi } from 'vitest'
 import { ToastProvider } from '../components/ui/Toast'
-import type { MovieDetail, MovieSummary, Page } from '../api/types'
+import type { MovieDetail, MovieSummary, Page, PosterStatus } from '../api/types'
 
 export interface RecordedRequest {
   method: string
@@ -118,6 +118,7 @@ export function detail(overrides: Partial<MovieDetail> = {}): MovieDetail {
     castMembers: null,
     runtimeMinutes: null,
     posterUrl: null,
+    fetchedPoster: null,
     metadataSource: null,
     genres: [{ id: 1, name: 'Thriller - Mystery', category: 'Thriller' }],
     viewings: [],
@@ -135,4 +136,19 @@ export const referenceHandlers: Handler[] = [
   on('GET', '/api/v1/venues', () => ({ body: [] })),
   on('GET', '/api/v1/languages', () => ({ body: ['English', 'Tamil'] })),
   on('GET', '/api/v1/movies/duplicates', () => ({ body: [] })),
+  on('GET', '/api/v1/posters/status', () => ({ body: posterStatus() })),
 ]
+
+export function posterStatus(overrides: Partial<PosterStatus> = {}): PosterStatus {
+  return {
+    enabled: false,
+    source: 'Wikipedia',
+    totalMovies: 3,
+    withOwnPoster: 0,
+    withFetchedPoster: 0,
+    pending: 3,
+    notFound: 0,
+    rejected: 0,
+    ...overrides,
+  }
+}

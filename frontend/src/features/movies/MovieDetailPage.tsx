@@ -12,6 +12,7 @@ import { Chip, EmptyState, ErrorState, Skeleton } from '../../components/ui/Stat
 import { useToast } from '../../components/ui/Toast'
 import { FORMAT_LABELS, formatDate, methodLabel, plural } from '../../lib/format'
 import { ViewingDialog } from '../viewings/ViewingDialog'
+import { PosterCredit } from './PosterCredit'
 
 export function MovieDetailPage() {
   const id = Number(useParams().id)
@@ -51,7 +52,14 @@ function MovieDetailView({ movie }: { movie: MovieDetail }) {
 
       <div className="grid gap-8 md:grid-cols-[minmax(0,15rem)_1fr]">
         <div className="mx-auto w-48 md:w-full">
-          <Poster title={movie.title} year={movie.releaseYear} format={movie.format} posterUrl={movie.posterUrl} size="lg" />
+          <Poster
+            title={movie.title}
+            year={movie.releaseYear}
+            format={movie.format}
+            posterUrl={movie.posterUrl ?? movie.fetchedPoster?.url ?? null}
+            size="lg"
+          />
+          <PosterCredit movie={movie} />
         </div>
 
         <div className="min-w-0">
