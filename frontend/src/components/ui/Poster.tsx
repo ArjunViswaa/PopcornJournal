@@ -15,13 +15,23 @@ interface PosterProps {
   posterUrl: string | null
   className?: string
   size?: 'xs' | 'sm' | 'md' | 'lg'
+  /** The placeholder's top-left "Feature"/"Series" label; hidden when something else sits there. */
+  showFormatLabel?: boolean
 }
 
 /**
  * Shows the poster when a URL is stored; otherwise a typographic placeholder in the
  * style of a festival programme card. No external image service is involved.
  */
-export function Poster({ title, year, format, posterUrl, className = '', size = 'md' }: PosterProps) {
+export function Poster({
+  title,
+  year,
+  format,
+  posterUrl,
+  className = '',
+  size = 'md',
+  showFormatLabel = true,
+}: PosterProps) {
   const [failed, setFailed] = useState(false)
   if (posterUrl && !failed) {
     return (
@@ -70,7 +80,9 @@ export function Poster({ title, year, format, posterUrl, className = '', size = 
         ))}
       </div>
       <span
-        className="eyebrow relative"
+        // keeps its space so the title stays put when the label is hidden
+        aria-hidden
+        className={`eyebrow relative ${showFormatLabel ? '' : 'invisible'}`}
         style={{ color: `oklch(0.8 0.06 ${hue})` }}
       >
         {format === 'SERIES' ? 'Series' : 'Feature'}

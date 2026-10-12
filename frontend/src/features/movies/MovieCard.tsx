@@ -1,4 +1,4 @@
-import { Heart, MessageSquareText } from 'lucide-react'
+import { CalendarDays, Heart, MessageSquareText } from 'lucide-react'
 import { Link } from 'react-router'
 import type { MovieSummary } from '../../api/types'
 import { Poster } from '../../components/ui/Poster'
@@ -16,15 +16,32 @@ function details(movie: MovieSummary): string {
 }
 
 export function MovieCard({ movie }: { movie: MovieSummary }) {
+  const watched = movie.lastWatchedOn ? formatDate(movie.lastWatchedOn) : null
   return (
     <Link
       to={`/movies/${movie.id}`}
       className="group flex flex-col gap-3 rounded-2xl p-2 transition-colors hover:bg-surface"
-      aria-label={`${movie.title}${movie.releaseYear ? ` (${movie.releaseYear})` : ''}`}
+      aria-label={`${movie.title}${movie.releaseYear ? ` (${movie.releaseYear})` : ''}${watched ? `, watched ${watched}` : ''}`}
     >
       {/* the lift sits on the wrapper so the overlays move with the poster */}
       <div className="relative transition-transform duration-200 group-hover:-translate-y-0.5">
-        <Poster title={movie.title} year={movie.releaseYear} format={movie.format} posterUrl={movie.posterUrl} />
+        <Poster
+          title={movie.title}
+          year={movie.releaseYear}
+          format={movie.format}
+          posterUrl={movie.posterUrl}
+          showFormatLabel={!watched}
+        />
+        {/* top-left: most recent recorded watch date; undated titles get no tag */}
+        {watched && (
+          <span
+            className="num absolute top-2 left-2 inline-flex items-center gap-1 rounded-lg bg-black/70 px-2 py-1 text-[11px] font-medium text-ink backdrop-blur-sm"
+            title={movie.viewingCount > 1 ? `Last watched ${watched}` : `Watched ${watched}`}
+          >
+            <CalendarDays className="size-3 text-accent" aria-hidden />
+            {watched}
+          </span>
+        )}
         {movie.favourite && (
           <span className="absolute top-2 right-2 rounded-full bg-black/60 p-1.5" title="Favourite">
             <Heart className="size-3.5 fill-accent text-accent" aria-label="Favourite" />
