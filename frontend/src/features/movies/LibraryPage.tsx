@@ -25,14 +25,20 @@ export const LISTS: { value: PersonalList | ''; label: string }[] = [
 ]
 
 const SORTS: { value: MovieSort; label: string }[] = [
-  { value: 'TITLE', label: 'Title A–Z' },
   { value: 'LATEST_WATCHED', label: 'Latest watched' },
+  { value: 'TITLE', label: 'Title A–Z' },
   { value: 'EARLIEST_WATCHED', label: 'Earliest watched' },
   { value: 'HIGHEST_RATED', label: 'Highest rated' },
   { value: 'LOWEST_RATED', label: 'Lowest rated' },
   { value: 'RELEASE_YEAR', label: 'Newest release' },
   { value: 'RECENTLY_ADDED', label: 'Recently added' },
 ]
+
+/** Mirrors the API: newest viewings first, except lists with a natural order of their own. */
+export function defaultSort(list: PersonalList | undefined): MovieSort {
+  if (list === 'TOP_RATED') return 'HIGHEST_RATED'
+  return 'LATEST_WATCHED'
+}
 
 const FILTER_KEYS = ['language', 'genreId', 'platformId', 'format', 'watchedYear', 'minRating', 'ratingTier'] as const
 
@@ -206,8 +212,12 @@ export function LibraryPage() {
             <option value="BEYOND_SCALE">∞ only</option>
             <option value="UNRATED">Unrated</option>
           </Select>
-          <Select aria-label="Sort by" value={query.sort ?? ''} onChange={(e) => update({ sort: e.target.value })}>
-            <option value="">Default order</option>
+          <Select
+            aria-label="Sort by"
+            value={query.sort ?? defaultSort(query.list)}
+            // the default isn't written to the URL, so plain /movies stays the recently-watched view
+            onChange={(e) => update({ sort: e.target.value === defaultSort(query.list) ? undefined : e.target.value })}
+          >
             {SORTS.map((s) => (
               <option key={s.value} value={s.value}>
                 {s.label}

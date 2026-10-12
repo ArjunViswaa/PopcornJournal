@@ -13,15 +13,30 @@ describe('LibraryPage', () => {
     renderWithProviders(<LibraryPage />, '/movies')
 
     expect(screen.getByLabelText('Loading movies')).toBeInTheDocument()
-    expect(await screen.findByRole('link', { name: 'Midnight Signal (2024)' })).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Harbour Lights (2024)' })).toBeInTheDocument()
+    expect(await screen.findByRole('link', { name: 'Midnight Signal (2024), watched 1 Jul 2026' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Harbour Lights (2024), watched 1 Jul 2026' })).toBeInTheDocument()
     expect(screen.getByText('2 titles match')).toBeInTheDocument()
+  })
+
+  it('tags each poster with its latest watch date, and only when one is recorded', async () => {
+    mockApi([
+      on('GET', '/api/v1/movies', () => ({
+        body: page([summary(), summary({ id: 2, title: 'Undated Film', lastWatchedOn: null })]),
+      })),
+      ...referenceHandlers,
+    ])
+    renderWithProviders(<LibraryPage />, '/movies')
+
+    const dated = await screen.findByRole('link', { name: 'Midnight Signal (2024), watched 1 Jul 2026' })
+    expect(within(dated).getByText('1 Jul 2026')).toBeInTheDocument()
+    const undated = screen.getByRole('link', { name: 'Undated Film (2024)' })
+    expect(within(undated).queryByText(/2026/)).not.toBeInTheDocument()
   })
 
   it('sends the search text and filters to the backend', async () => {
     const requests = mockApi([on('GET', '/api/v1/movies', () => ({ body: page([summary()]) })), ...referenceHandlers])
     renderWithProviders(<LibraryPage />, '/movies')
-    await screen.findByRole('link', { name: 'Midnight Signal (2024)' })
+    await screen.findByRole('link', { name: 'Midnight Signal (2024), watched 1 Jul 2026' })
 
     await userEvent.type(screen.getByLabelText('Search by title'), 'signal')
     await waitFor(() =>
@@ -38,10 +53,24 @@ describe('LibraryPage', () => {
     })
   })
 
+  it('defaults to most recently watched without putting it in the URL', async () => {
+    const requests = mockApi([on('GET', '/api/v1/movies', () => ({ body: page([summary()]) })), ...referenceHandlers])
+    const { router } = renderWithProviders(<LibraryPage />, '/movies')
+    await screen.findByRole('link', { name: 'Midnight Signal (2024), watched 1 Jul 2026' })
+
+    expect(screen.getByLabelText('Sort by')).toHaveValue('LATEST_WATCHED')
+    expect(requests.find((r) => r.url.pathname === '/api/v1/movies')?.url.searchParams.has('sort')).toBe(false)
+
+    await userEvent.selectOptions(screen.getByLabelText('Sort by'), 'TITLE')
+    await waitFor(() => expect(router.state.location.search).toContain('sort=TITLE'))
+    await userEvent.selectOptions(screen.getByLabelText('Sort by'), 'LATEST_WATCHED')
+    await waitFor(() => expect(router.state.location.search).not.toContain('sort='))
+  })
+
   it('switches personal lists through the tabs', async () => {
     const requests = mockApi([on('GET', '/api/v1/movies', () => ({ body: page([summary()]) })), ...referenceHandlers])
     renderWithProviders(<LibraryPage />, '/movies')
-    await screen.findByRole('link', { name: 'Midnight Signal (2024)' })
+    await screen.findByRole('link', { name: 'Midnight Signal (2024), watched 1 Jul 2026' })
 
     await userEvent.click(screen.getByRole('tab', { name: 'Unrated' }))
 
@@ -71,7 +100,7 @@ describe('LibraryPage', () => {
   it('switches between grid and list layouts', async () => {
     mockApi([on('GET', '/api/v1/movies', () => ({ body: page([summary({ platforms: ['Netflix'] })]) })), ...referenceHandlers])
     renderWithProviders(<LibraryPage />, '/movies')
-    await screen.findByRole('link', { name: 'Midnight Signal (2024)' })
+    await screen.findByRole('link', { name: 'Midnight Signal (2024), watched 1 Jul 2026' })
 
     await userEvent.click(screen.getByRole('button', { name: 'List view' }))
 
