@@ -2,8 +2,9 @@ spring:
   application:
     name: popcorn-journal
   config:
-    # KEY=VALUE lines in the repo-root .env are valid properties, so read them directly
-    import: "optional:file:../.env[.properties],optional:file:./.env[.properties]"
+    # KEY=VALUE lines in the repo-root .env are valid properties, so read them directly.
+    # POPCORN_ENV_FILE overrides the location; tests point it at nothing.
+    import: "optional:file:${POPCORN_ENV_FILE:../.env}[.properties],optional:file:${POPCORN_ENV_FILE:./.env}[.properties]"
   datasource:
     url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:popcorn}
     username: ${DB_USER:popcorn}

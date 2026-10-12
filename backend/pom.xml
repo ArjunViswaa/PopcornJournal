@@ -110,6 +110,10 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
+                    <!-- tests must not pick up the developer's real .env settings -->
+                    <systemPropertyVariables>
+                        <POPCORN_ENV_FILE>${project.build.directory}/no-env-file-in-tests</POPCORN_ENV_FILE>
+                    </systemPropertyVariables>
                     <includes>
                         <include>**/*Test.java</include>
                         <include>**/*IT.java</include>
