@@ -51,17 +51,11 @@ public record MovieSearchCriteria(
         return Math.min(size, MAX_SIZE);
     }
 
-    /** A personal list implies a natural order when no explicit sort is given. */
+    /** Most recently watched first, unless a personal list implies its own natural order. */
     public MovieSort sortOrDefault() {
         if (sort != null) {
             return sort;
         }
-        if (list == PersonalList.TOP_RATED) {
-            return MovieSort.HIGHEST_RATED;
-        }
-        if (list == PersonalList.RECENTLY_WATCHED) {
-            return MovieSort.LATEST_WATCHED;
-        }
-        return MovieSort.TITLE;
+        return list == PersonalList.TOP_RATED ? MovieSort.HIGHEST_RATED : MovieSort.LATEST_WATCHED;
     }
 }

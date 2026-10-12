@@ -197,7 +197,13 @@ public class MovieSearchRepository {
     private static String orderBy(MovieSearchCriteria.MovieSort sort) {
         return switch (sort) {
             case TITLE -> "lower(m.title) ASC, m.id ASC";
-            case LATEST_WATCHED -> "vs.last_watched_on DESC NULLS LAST, lower(m.title) ASC, m.id ASC";
+            // Titles without a dated viewing come after dated ones. Among them, ones added in the
+            // app come first (newest first), then imported ones in spreadsheet order, since the
+            // sheet was kept newest-first. Ordering only: no date is inferred or shown.
+            case LATEST_WATCHED -> """
+                    vs.last_watched_on DESC NULLS LAST,
+                    (SELECT min(r.row_number) FROM import_source_rows r WHERE r.movie_id = m.id) ASC NULLS FIRST,
+                    m.created_at DESC, m.id DESC""";
             case EARLIEST_WATCHED -> "vs.first_watched_on ASC NULLS LAST, lower(m.title) ASC, m.id ASC";
             case HIGHEST_RATED -> EFFECTIVE_RATING + " DESC NULLS LAST, lower(m.title) ASC, m.id ASC";
             case LOWEST_RATED -> EFFECTIVE_RATING + " ASC NULLS LAST, lower(m.title) ASC, m.id ASC";

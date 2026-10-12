@@ -127,6 +127,30 @@ class MovieSearchRepositoryIT extends IntegrationTest {
     }
 
     @Test
+    void defaultOrderIsMostRecentlyWatched() {
+        assertThat(find(criteria()).content()).extracting(MovieSummaryDto::title)
+                .startsWith("Youth", "Ponman");
+    }
+
+    @Test
+    void undatedImportedTitlesFollowSpreadsheetOrderAfterAppAddedOnes() {
+        long run = id("""
+                INSERT INTO import_runs (source_file_name, source_sha256, triggered_by, started_at, finished_at, summary)
+                VALUES ('s.xlsx', repeat('0', 64), 'CLI', now(), now(), '{}') RETURNING id""");
+        long laterInSheet = movie("Zeta", "MOVIE", 2020, "Tamil", 7, false, null);
+        long earlierInSheet = movie("Alpha", "MOVIE", 2019, "Tamil", 7, false, null);
+        jdbc.update("""
+                INSERT INTO import_source_rows (sheet_name, record_key, row_number, raw_values, movie_id,
+                                                first_import_run_id, last_import_run_id)
+                VALUES ('Watch_Sheet', 'k1', 40, '{}', ?, ?, ?), ('Watch_Sheet', 'k2', 12, '{}', ?, ?, ?)""",
+                laterInSheet, run, run, earlierInSheet, run, run);
+
+        // dated first; then undated titles added in the app (newest first); then the sheet, top row first
+        assertThat(find(criteria()).content()).extracting(MovieSummaryDto::title)
+                .containsExactly("Youth", "Ponman", "A Hard Day", "F.R.I.E.N.D.S", "Alpha", "Zeta");
+    }
+
+    @Test
     void personalLists() {
         assertThat(titles(PersonalList.NO_REVIEW)).containsExactlyInAnyOrder("Youth", "A Hard Day");
         assertThat(titles(PersonalList.UNRATED)).containsExactly("A Hard Day");
